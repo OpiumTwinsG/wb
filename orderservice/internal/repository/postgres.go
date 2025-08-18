@@ -18,7 +18,7 @@ type Config struct {
 }
 
 type Storage   struct{
-	pool *pgxpool.Pool
+	Pool *pgxpool.Pool
 }
 
 func NewPostgresRepository(ctx context.Context, cfg Config) (*Storage , error){
@@ -26,21 +26,21 @@ func NewPostgresRepository(ctx context.Context, cfg Config) (*Storage , error){
 		"postgres://%s:%s@%s:%s/%s",
 		cfg.UserName, cfg.Password, cfg.Host, cfg.Port, cfg.DBName,
 	)
-	pool, err := pgxpool.New(ctx, dsn)
+	Pool, err := pgxpool.New(ctx, dsn)
 	if err !=nil{
 		return nil, fmt.Errorf("connect to db: %w", err)
 	}
-	err = pool.Ping(ctx)
+	err = Pool.Ping(ctx)
 	if err !=nil{
 		return nil, fmt.Errorf("ping to db: %w",err)
 	}
-	return &Storage{pool: pool}, nil
+	return &Storage{Pool: Pool}, nil
 }
 
-func (s *Storage) Close() {s.pool.Close()}
+func (s *Storage) Close() {s.Pool.Close()}
 
 func (s *Storage) SaveOrder(ctx context.Context, order *model.Order) error{
-	tx, err := s.pool.Begin(ctx)
+	tx, err := s.Pool.Begin(ctx)
 	 if err != nil {
         return fmt.Errorf("failed to begin transaction: %w", err)
     }
@@ -107,7 +107,7 @@ func (s *Storage) SaveOrder(ctx context.Context, order *model.Order) error{
 func (s *Storage) GetOrders(ctx context.Context) ([]model.Order,error){
 	var orders []model.Order
 	const q = `select order_uid from orders`
-	rows, err := s.pool.Query(ctx, q)
+	rows, err := s.Pool.Query(ctx, q)
 	if err !=nil{
 		return nil, err
 	}
@@ -135,8 +135,8 @@ func (s *Storage) GetOrderByID(ctx context.Context, id string) (model.Order,erro
         internal_signature, customer_id, delivery_service,
         shardkey, sm_id, date_created, oof_shard
     FROM orders WHERE order_uid = $1`
-	_ = s.pool.QueryRow(ctx, orderQuery, id)
-	err := s.pool.QueryRow(ctx, orderQuery, id).Scan(
+	_ = s.Pool.QueryRow(ctx, orderQuery, id)
+	err := s.Pool.QueryRow(ctx, orderQuery, id).Scan(
         &order.OrderUID, &order.TrackNumber, &order.Entry,
         &order.Locale, &order.InternalSignature, &order.CustomerID,
         &order.DeliveryService, &order.Shardkey, &order.SmID,
@@ -150,7 +150,7 @@ func (s *Storage) GetOrderByID(ctx context.Context, id string) (model.Order,erro
     FROM deliveries WHERE order_uid = $1`
     
     order.Delivery = &model.Delivery{OrderUID: id}
-    err = s.pool.QueryRow(ctx, deliveryQuery, id).Scan(
+    err = s.Pool.QueryRow(ctx, deliveryQuery, id).Scan(
         &order.Delivery.Name, &order.Delivery.Phone, &order.Delivery.Zip,
         &order.Delivery.City, &order.Delivery.Address, &order.Delivery.Region,
         &order.Delivery.Email)
@@ -164,7 +164,7 @@ func (s *Storage) GetOrderByID(ctx context.Context, id string) (model.Order,erro
     FROM payments WHERE transaction = $1`
     
     order.Payment = &model.Payment{Transaction: id}
-    err = s.pool.QueryRow(ctx, paymentQuery, id).Scan(
+    err = s.Pool.QueryRow(ctx, paymentQuery, id).Scan(
         &order.Payment.RequestID, &order.Payment.Currency, &order.Payment.Provider,
         &order.Payment.Amount, &order.Payment.PaymentDt, &order.Payment.Bank,
         &order.Payment.DeliveryCost, &order.Payment.GoodsTotal, &order.Payment.CustomFee)
@@ -176,7 +176,7 @@ func (s *Storage) GetOrderByID(ctx context.Context, id string) (model.Order,erro
         chrt_id, track_number, price, rid, name,
         sale, size, total_price, nm_id, brand, status
     FROM items WHERE order_uid = $1`
-	rows, err := s.pool.Query(ctx, itemsQuery, id)
+	rows, err := s.Pool.Query(ctx, itemsQuery, id)
 	if err !=nil{
 		return order, fmt.Errorf("failed to get rows by id %s: %w",id, err)
 	}

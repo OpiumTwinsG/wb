@@ -14,7 +14,7 @@ COPY . .
 RUN CGO_ENABLED=0 \
     GOOS=linux \
     GOARCH=amd64 \
-    go build -o dbService ./cmd
+    go build -o orderService ./cmd
 
 # ── Runtime Stage ────────────────────────────────────────────────────────────
 FROM alpine:3.19
