@@ -6,6 +6,8 @@ import (
 	"fmt"
 	// "time"
 	"orderservice/internal/model"
+	"orderservice/internal/pkg/logger"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -28,22 +30,31 @@ func NewPostgresRepository(ctx context.Context, cfg Config) (*Storage , error){
 	)
 	Pool, err := pgxpool.New(ctx, dsn)
 	if err !=nil{
+        logger.Log.Errorw("failed to connect to pool","err", err)
 		return nil, fmt.Errorf("connect to db: %w", err)
 	}
+    logger.Log.Infow("get connection to pool", "dsn: ", dsn)
 	err = Pool.Ping(ctx)
 	if err !=nil{
+        logger.Log.Errorw("failed go get connection to pool", "err", err)
 		return nil, fmt.Errorf("ping to db: %w",err)
 	}
+    logger.Log.Infow("successfully connect to db")
 	return &Storage{Pool: Pool}, nil
 }
 
-func (s *Storage) Close() {s.Pool.Close()}
+func (s *Storage) Close() {
+    logger.Log.Debugw("Close pool")
+    s.Pool.Close()
+}
 
 func (s *Storage) SaveOrder(ctx context.Context, order *model.Order) error{
 	tx, err := s.Pool.Begin(ctx)
 	 if err != nil {
+        logger.Log.Errorw("failed to begin transaction", "err", err)
         return fmt.Errorf("failed to begin transaction: %w", err)
     }
+    logger.Log.Debugw("successfully begin transaction")
     defer tx.Rollback(ctx)
 	 // 1. Сохраняем основной заказ
     const orderQuery = `INSERT INTO orders (
@@ -51,14 +62,15 @@ func (s *Storage) SaveOrder(ctx context.Context, order *model.Order) error{
         internal_signature, customer_id, delivery_service,
         shardkey, sm_id, date_created, oof_shard
     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
-
 	_, err = tx.Exec(ctx, orderQuery,
         order.OrderUID, order.TrackNumber, order.Entry, order.Locale,
         order.InternalSignature, order.CustomerID, order.DeliveryService,
         order.Shardkey, order.SmID, order.DateCreated, order.OofShard)
     if err != nil {
+        logger.Log.Errorw("failed to insert order", "err", err, "order_uid", order.OrderUID,)
         return fmt.Errorf("failed to insert order: %w", err)
     }
+    logger.Log.Debugw("Successfully insert into orders", "order_uid", order.OrderUID, "customer_id", order.CustomerID)
 	const deliveryQuery = `INSERT INTO deliveries (
         order_uid, name, phone, zip, city, address, region, email
     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
@@ -68,8 +80,10 @@ func (s *Storage) SaveOrder(ctx context.Context, order *model.Order) error{
         order.Delivery.Zip, order.Delivery.City, order.Delivery.Address,
         order.Delivery.Region, order.Delivery.Email)
     if err != nil {
+        logger.Log.Errorw("failed to insert delivery", "err", err, "order_uid", order.OrderUID, "delivery_name", order.Delivery.Name)
         return fmt.Errorf("failed to insert delivery: %w", err)
     }
+    logger.Log.Debugw("Successfully insert into deliveries", "order_uid", order.OrderUID, "customer_id", order.CustomerID,"delivery_name", order.Delivery.Name)
 	// 3. Сохраняем платеж
     const paymentQuery = `INSERT INTO payments (
         transaction, request_id, currency, provider, amount,
@@ -82,8 +96,10 @@ func (s *Storage) SaveOrder(ctx context.Context, order *model.Order) error{
         order.Payment.Bank, order.Payment.DeliveryCost, order.Payment.GoodsTotal,
         order.Payment.CustomFee)
     if err != nil {
+        logger.Log.Errorw("faild to insert payment", "err", err, "order_uid", order.OrderUID, "transaction", order.Payment.Transaction)
         return fmt.Errorf("failed to insert payment: %w", err)
     }
+    logger.Log.Debugw("Successfully insert into payments", "order_uid", order.OrderUID, "customer_id", order.CustomerID, "transaction", order.Payment.Transaction)
 	// 4. Сохраняем товары
     const itemQuery = `INSERT INTO items (
         order_uid, chrt_id, track_number, price, rid, 
@@ -95,12 +111,16 @@ func (s *Storage) SaveOrder(ctx context.Context, order *model.Order) error{
             item.Name, item.Sale, item.Size, item.TotalPrice, item.NmID,
             item.Brand, item.Status)
         if err != nil {
+            logger.Log.Errorw("failed to insert item", "err", err, "order_uid", order.OrderUID)
             return fmt.Errorf("failed to insert item: %w", err)
         }
 	}
+    logger.Log.Debugw("Successfully insert into items", "order_uid", order.OrderUID)
 	if err := tx.Commit(ctx); err!=nil{
+        logger.Log.Errorw("failed to commit transaction", "err",err)
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
+    logger.Log.Infow("successfulle commit transaction")
 	return nil
 }
 
@@ -111,19 +131,22 @@ func (s *Storage) GetOrders(ctx context.Context) ([]model.Order,error){
 	if err !=nil{
 		return nil, err
 	}
+    logger.Log.Debugw("successfulle get rows")
 	defer rows.Close()
 	for rows.Next() {
         var orderUID string
         if err := rows.Scan(&orderUID);err!=nil{
 			return nil, fmt.Errorf("failed to scan order uid: %w", err)
 		}
+        logger.Log.Debugw("successfulle scan into orderUID")
 		order, err := s.GetOrderByID(ctx, orderUID)
 		if err !=nil{
 			return nil, fmt.Errorf("failed to load full order %s: %w",orderUID, err)
 		}
-        
+        logger.Log.Debugw("successfulle GetOrderByID")
         orders = append(orders, order)
     }
+    logger.Log.Infow("successfully return orders")
 	return orders, nil
 }
 
@@ -144,6 +167,7 @@ func (s *Storage) GetOrderByID(ctx context.Context, id string) (model.Order,erro
     if err != nil {
         return model.Order{}, fmt.Errorf("failed to get order: %w", err)
     }
+    logger.Log.Debugw("successfully get order")
 	// 2. Получаем доставку
     const deliveryQuery = `SELECT 
         name, phone, zip, city, address, region, email
@@ -157,6 +181,7 @@ func (s *Storage) GetOrderByID(ctx context.Context, id string) (model.Order,erro
     if err != nil {
         return model.Order{}, fmt.Errorf("failed to get delivery: %w", err)
     }
+    logger.Log.Debugw("successfully get delivery")
 	// 3. Получаем платеж
     const paymentQuery = `SELECT 
         request_id, currency, provider, amount,
@@ -171,6 +196,7 @@ func (s *Storage) GetOrderByID(ctx context.Context, id string) (model.Order,erro
     if err != nil {
         return model.Order{}, fmt.Errorf("failed to get payment: %w", err)
     }
+    logger.Log.Debugw("successfully get payment")
 	// 4. Получаем товары
     const itemsQuery = `SELECT 
         chrt_id, track_number, price, rid, name,
@@ -180,6 +206,7 @@ func (s *Storage) GetOrderByID(ctx context.Context, id string) (model.Order,erro
 	if err !=nil{
 		return order, fmt.Errorf("failed to get rows by id %s: %w",id, err)
 	}
+    logger.Log.Debugw("successfully get items")
 	defer rows.Close()
 	for rows.Next(){
 		var item model.Item
@@ -190,8 +217,9 @@ func (s *Storage) GetOrderByID(ctx context.Context, id string) (model.Order,erro
         if err != nil {
             return model.Order{}, fmt.Errorf("failed to scan item: %w", err)
         }
+        logger.Log.Debugw("successfully get items")
         order.Items = append(order.Items, item)
 	}
-
+    logger.Log.Infow("successfully get order")
 	return order, nil
 }

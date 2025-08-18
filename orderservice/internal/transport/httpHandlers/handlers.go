@@ -42,10 +42,14 @@ func New(svc OrderService, cache *cache.Cache) *Handler { return &Handler{
 
 func (h *Handler) NewRouter() http.Handler{
 	r := chi.NewRouter()
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+           w.WriteHeader(http.StatusOK)         
+		   _, _ = w.Write([]byte("ok")) })
 	r.Route("/orders", func(r chi.Router){
 		r.Post("/", h.saveOrder)
 		r.Get("/", h.getOrders)
 		r.Get("/{id}", h.getOrderByID)
+		
 		// r.Delete("/{id}", )
 	})
 	return r
@@ -54,18 +58,22 @@ func (h *Handler) saveOrder(w http.ResponseWriter, r *http.Request) {
 	var order model.Order
 	if err:=json.NewDecoder(r.Body).Decode(&order);err!=nil{
 		writeJSON(w, http.StatusBadRequest, err) 
+		return
 	}
 	err := h.svc.SaveOrder(r.Context(), &order)
 	if err !=nil{
 		writeJSON(w, http.StatusInternalServerError, err)
+		return
 	}
 	h.cache.Set(order.OrderUID, order)
-	w.WriteHeader(http.StatusOK)
+	   writeJSON(w, http.StatusCreated, map[string]any{       "status":    "ok",       "order_uid": order.OrderUID,
+  })
 }
 func (h *Handler) getOrders(w http.ResponseWriter, r *http.Request) {
 	orders, err := h.svc.GetOrders(r.Context())
 	if err !=nil{
 		writeJSON(w, http.StatusBadRequest, err)
+		return
 	}
 	writeJSON(w, http.StatusOK, orders)
 }
@@ -76,6 +84,7 @@ func (h *Handler) getOrderByID(w http.ResponseWriter, r *http.Request)  {
 		order, err := h.svc.GetOrderByID(r.Context(), id)
 		if err !=nil{
 			writeJSON(w, http.StatusBadRequest, err)
+			return
 		}
 		h.cache.Set(id, order)
 		writeJSON(w, http.StatusOK, order)

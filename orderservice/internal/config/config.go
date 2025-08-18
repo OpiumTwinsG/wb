@@ -16,7 +16,7 @@ type Config struct{
 }// LoadConfig читает .env / OS env и инициализирует zap‑логер.
 func LoadConfig() *Config {
 	cfg := &Config{}
-	if err := cleanenv.ReadConfig("./.env", cfg); err != nil {
+	if err := cleanenv.ReadEnv(cfg); err != nil {
 		logger.Init("error", "local")
 		logger.Log.Fatalw("config read error", "err", err)
 	}

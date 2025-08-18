@@ -26,14 +26,12 @@ func NewCache( repo OrderService) *Cache {
 		logger.Log.Errorf("could not load data from database %v", err)
 	}
 	return cache
-	
-
 }
 
 func (c *Cache) restoreFromDB() error{
 
 	c.mu.Lock()
-	defer c.mu.Lock()
+	defer c.mu.Unlock()
 
 	orders, err := c.Repo.GetOrders(context.Background())
 	if err != nil {
@@ -42,13 +40,14 @@ func (c *Cache) restoreFromDB() error{
 	for _, order := range orders{
 		c.cache[order.OrderUID] = order
 	}
-	logger.Log.Errorf("Restored %d orders from DB to cache", len(orders))
+	logger.Log.Infof("Restored %d orders from DB to cache", len(orders))
 
 	return nil
 }
 
 func (c *Cache) Set(k string, v model.Order) {
 	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.cache[k] = v
 	c.cache[k]=v
 	logger.Log.Debugw("successfully set order by key:", "key:",k)
@@ -58,7 +57,7 @@ func (c *Cache) Get(k string) (model.Order, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	order, ok := c.cache[k]
-	logger.Log.Debugw("successfully get order by key:", "key:",order.OrderUID)
+	logger.Log.Debugw("successfully get order by key", "key", k, "found", ok)
 	return order, ok
 }
 

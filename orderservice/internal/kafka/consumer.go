@@ -6,6 +6,7 @@ import (
   "github.com/IBM/sarama"
   "orderservice/internal/model"
   "orderservice/internal/cache"
+  "orderservice/internal/pkg/logger"
 //   "orderservice/internal/transport/httphandlers"
 )
 
@@ -61,6 +62,11 @@ func (h *consumerHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim s
   // Декодируем JSON сообщение
     if err := json.Unmarshal(msg.Value, &order); err != nil {
       continue
+    }
+    if order.OrderUID=="" || order.CustomerID==""{
+      logger.Log.Warnw("invalid order data", "order", order)
+            sess.MarkMessage(msg, "")
+            continue
     }
    // Сохраняем заказ через use case
     if err := h.uc.SaveOrder(sess.Context(), &order); err != nil {

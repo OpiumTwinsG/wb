@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1
 
 # ── Build Stage ──────────────────────────────────────────────────────────────
-FROM golang:1.24-alpine AS builder
+FROM golang:1.23-alpine AS builder
+ENV GOTOOLCHAIN=auto
 WORKDIR /src
 # 1) Копируем только манифест для кеширования зависимостей
 COPY go.mod go.sum ./
