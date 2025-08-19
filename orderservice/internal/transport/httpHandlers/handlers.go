@@ -6,9 +6,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"net/http"
 	// "strconv"
-	"orderservice/internal/model"
+	"awesomeproject7/orderservice/internal/model"
 	"context"
-	"orderservice/internal/cache"
+	"awesomeproject7/orderservice/internal/cache"
 )
 
 

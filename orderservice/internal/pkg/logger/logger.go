@@ -14,7 +14,7 @@ func Init(level, env string){
 	} else {
 		cfg = zap.NewProductionConfig()
 	}
-
+	
 	switch level {
 	case "debug":
 		cfg.Level = zap.NewAtomicLevelAt(zap.DebugLevel)

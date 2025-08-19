@@ -1,8 +1,8 @@
 package cache
 
 import (
-	model "orderservice/internal/model"
-	"orderservice/internal/pkg/logger"
+	model "awesomeproject7/orderservice/internal/model"
+	"awesomeproject7/orderservice/internal/pkg/logger"
 	"sync"
 
 	// "orderservice/internal/repository"

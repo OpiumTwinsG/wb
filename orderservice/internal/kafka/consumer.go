@@ -4,9 +4,9 @@ import (
   "context"
   "encoding/json"
   "github.com/IBM/sarama"
-  "orderservice/internal/model"
-  "orderservice/internal/cache"
-  "orderservice/internal/pkg/logger"
+  "awesomeproject7/orderservice/internal/model"
+  "awesomeproject7/orderservice/internal/cache"
+  "awesomeproject7/orderservice/internal/pkg/logger"
 //   "orderservice/internal/transport/httphandlers"
 )
 

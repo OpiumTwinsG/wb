@@ -5,8 +5,8 @@ import (
 	// "encoding/json"
 	"fmt"
 	// "time"
-	"orderservice/internal/model"
-	"orderservice/internal/pkg/logger"
+	"awesomeproject7/orderservice/internal/model"
+	"awesomeproject7/orderservice/internal/pkg/logger"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )

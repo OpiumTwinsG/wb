@@ -1,10 +1,10 @@
 package config
 
 import (
-	"orderservice/internal/repository"
+	"awesomeproject7/orderservice/internal/repository"
 	"github.com/ilyakaznacheev/cleanenv"
-	"orderservice/internal/pkg/logger"
-	"orderservice/internal/kafka"
+	"awesomeproject7/orderservice/internal/pkg/logger"
+	"awesomeproject7/orderservice/internal/kafka"
 )
 
 type Config struct{

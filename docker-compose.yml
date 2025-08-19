@@ -83,17 +83,16 @@ services:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-  # kafka-service:
-  #   build:
-  #     context: ./kafkaService
-  #     dockerfile: Dockerfile
-  #   env_file:
-  #     - ./kafkaService/.env
-  #   volumes:
-  #     - ./logs:/app/logs
-  #   depends_on:
-  #     - kafka
-  #   restart: on-failure
+  kafka-service:
+    build:
+      context: ./kafkaService
+      dockerfile: Dockerfile
+    env_file:
+      - ./kafkaService/.env
+    depends_on:
+      kafka:
+        condition: service_started
+    restart: on-failure
 
 volumes:
   postgres_data:

@@ -3,7 +3,7 @@ package httpserver
 import ("net/http"
 		 "time"
 		"context"
-		"orderservice/internal/pkg/logger"
+		"awesomeproject7/orderservice/internal/pkg/logger"
 		)
 
 type OrderServiceServer struct {
