@@ -16,7 +16,7 @@ func NewAsyncProducer(cfg config.Config) *Producer{
 	cfgSarama := sarama.NewConfig() //новый sarama Config
 	cfgSarama.Producer.RequiredAcks = sarama.WaitForLocal //ждем от лидера подверждение
 	cfgSarama.Producer.Retry.Max = 5 //число ретраев
-	cfgSarama.Producer.Idempotent = true
+	// cfgSarama.Producer.Idempotent = true
 	cfgSarama.Producer.Return.Successes = true
 	cfgSarama.Producer.Return.Errors = true
 	
@@ -24,7 +24,6 @@ func NewAsyncProducer(cfg config.Config) *Producer{
 	if err !=nil{
 		logger.Log.Fatalw("could not create asProd", "err", err)
 	}
-	defer producer.Close()
 	logger.Log.Infow("create new producer")
 	return &Producer{Async:producer, Topic: cfg.KFKA_TOPICS}
 }
@@ -42,6 +41,14 @@ func (p *Producer) Send(evt interface{}){
 	}
 	logger.Log.Infow("send msg to chan")
 	p.Async.Input() <- msg
+}
+
+func (p *Producer) SendBytes(b []byte) {
+    msg := &sarama.ProducerMessage{
+        Topic:     p.Topic,
+        Value:     sarama.ByteEncoder(b), // уже готовый JSON
+    }
+    p.Async.Input() <- msg
 }
 
 func (p *Producer) Close() error{

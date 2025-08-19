@@ -61,6 +61,7 @@ func (h *consumerHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim s
     var order model.Order
   // Декодируем JSON сообщение
     if err := json.Unmarshal(msg.Value, &order); err != nil {
+      logger.Log.Errorw("kafka: bad payload", "err", err, "value", string(msg.Value))
       continue
     }
     if order.OrderUID=="" || order.CustomerID==""{
